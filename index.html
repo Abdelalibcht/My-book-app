@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مكتبتي | محتوى متجدد</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50:'#f0f9ff', 100: '#e0f2fe', 500:'#0ea5e9', 900:'#0c4a6e', gold:'#d4af37' }
+                    },
+                    fontFamily: { cairo: ['Cairo', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #d4af37; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+        /* الأنيميشن الجديد للانتقال من اليمين لليسار */
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
+        }
+        .marquee-container {
+            overflow: hidden;
+            white-space: nowrap;
+            display: flex;
+            padding: 10px 0;
+            background-color: #f0f9ff;
+            border-radius: 10px;
+        }
+        .marquee-content {
+            display: inline-block;
+            animation: marquee 30s linear infinite;
+            padding-right: 20px;
+        }
+        .ad-item {
+            display: inline-block;
+            width: 300px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-left: 20px;
+            transition: transform 0.3s;
+            cursor: pointer;
+            text-align: right;
+            border-right: 4px solid #0ea5e9;
+        }
+        .dark .marquee-container {
+             background-color: #1f2937;
+        }
+        .dark .ad-item {
+             background: #111827;
+             box-shadow: 0 4px 6px rgba(255,255,255,0.1);
+        }
+
+        /* تأثير الانتقال لبطاقة الفئة */
+        .category-card {
+            transition: transform 0.3s, box-shadow 0.3s, background-color 0.3s; /* إضافة transition للون الخلفية والظل */
+        }
+        .category-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+            /* تغييرات التأثير عند الـ hover يتم إدارتها بواسطة فئات Tailwind في الـ HTML */
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
+
+    <nav class="fixed w-full z-50 bg-white/95 dark:bg-gray-800/95 backdrop-blur shadow-md">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <a href="#" onclick="navigate('home')" class="text-2xl font-bold text-brand-900 dark:text-brand-50 flex items-center gap-2">
+                <i class="fas fa-book-open text-brand-gold"></i> <span>مكتبتي</span>
+            </a>
+            <div class="hidden md:flex gap-6 font-bold">
+                <a href="#" onclick="navigate('home')" class="hover:text-brand-500">الرئيسية</a>
+                <a href="#" onclick="fetchAndRender('subject:fiction', 'روايات عالمية')" class="hover:text-brand-500">روايات</a>
+                <a href="#" onclick="fetchAndRender('subject:science', 'كتب علمية')" class="hover:text-brand-500">علوم</a>
+                <a href="#" onclick="navigate('about')" class="hover:text-brand-500">من نحن</a>
+            </div>
+            <button onclick="showAuthModal()" class="bg-brand-900 text-white px-5 py-2 rounded-full hover:bg-brand-600 transition shadow-lg text-sm">
+                <i class="fas fa-user-circle ml-2"></i> تسجيل الدخول
+            </button>
+        </div>
+    </nav>
+
+    <main id="app-content" class="pt-16 min-h-screen"></main>
+
+    <button onclick="toggleDarkMode()" class="fixed bottom-6 left-6 z-50 w-12 h-12 rounded-full bg-brand-900 dark:bg-gray-200 text-white dark:text-gray-900 shadow-xl flex items-center justify-center hover:scale-110 transition-all duration-300 ring-4 ring-brand-gold/50">
+        <i class="fas fa-moon dark:hidden"></i>
+        <i class="fas fa-sun hidden dark:block text-yellow-500"></i>
+    </button>
+    
+    <div id="authModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center transition-opacity duration-300" onclick="if(event.target.id === 'authModal') hideAuthModal()">
+        <div class="bg-white dark:bg-gray-900 p-8 rounded-lg shadow-2xl w-full max-w-md transform scale-95 opacity-0 transition-all duration-300">
+            <h3 class="text-2xl font-bold mb-6 text-brand-900 dark:text-brand-gold">انضم إلى مجتمع القرّاء</h3>
+            <form>
+                <div class="mb-4">
+                    <label for="email" class="block text-sm font-medium mb-1">البريد الإلكتروني</label>
+                    <input type="email" id="email" class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-800 focus:ring-brand-500 focus:border-brand-500" placeholder="example@domain.com">
+                </div>
+                <div class="mb-6">
+                    <label for="password" class="block text-sm font-medium mb-1">كلمة المرور</label>
+                    <input type="password" id="password" class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-800 focus:ring-brand-500 focus:border-brand-500" placeholder="********">
+                </div>
+                <button type="button" onclick="alert('تمت محاكاة تسجيل الدخول بنجاح! في الإصدار الحقيقي سيتم حفظ بياناتك.'); hideAuthModal();" class="w-full bg-brand-500 text-white p-3 rounded-md font-bold hover:bg-brand-600 transition">تسجيل الدخول / إنشاء حساب</button>
+            </form>
+            <button onclick="hideAuthModal()" class="absolute top-4 left-4 text-gray-400 hover:text-red-500 transition"><i class="fas fa-times text-xl"></i></button>
+        </div>
+    </div>
+
+    <footer class="bg-brand-900 text-white py-6 mt-10">
+        <div class="container mx-auto px-4 text-center">
+            <p class="text-sm opacity-70">© 2023 مكتبتي. جميع الحقوق محفوظة.</p>
+            <p class="mt-2 text-xs font-mono text-brand-gold">v1.2 beta</p>
+        </div>
+    </footer>
+
+    <script>
+        const appContent = document.getElementById('app-content');
+        const authModal = document.getElementById('authModal');
+        
+        // 0. إدارة التنقل وتاريخ المتصفح
+        function navigate(path, data = null) {
+            history.pushState({ path: path, data: data }, null, `#${path}`);
+            renderPage(path, data);
+        }
+
+        window.onpopstate = (event) => {
+            const state = event.state;
+            if (state && state.path) {
+                renderPage(state.path, state.data);
+            } else {
+                renderHome();
+            }
+        };
+
+        function renderPage(path, data) {
+            window.scrollTo(0,0);
+            switch(path) {
+                case 'home':
+                    renderHome();
+                    break;
+                case 'library':
+                    fetchAndRender(data.query, data.title);
+                    break;
+                case 'details':
+                    showDetails(data.bookId);
+                    break;
+                case 'about':
+                    renderAbout();
+                    break;
+                default:
+                    renderHome();
+            }
+        }
+        
+        // 1. الوظيفة الأساسية: جلب البيانات من Google API
+        async function fetchBooksFromGoogle(query, max = 12) {
+            try {
+                // نطلب كتب عامة باللغة العربية والإنجليزية لتنويع الإعلانات
+                const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=${max}&langRestrict=ar&orderBy=newest`);
+                const data = await res.json();
+                
+                // في حال عدم وجود نتائج عربية، نجلب محتوى عام باللغة الإنجليزية للإعلانات
+                if (!data.items || data.items.length < max) {
+                     const fallbackRes = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=${max}&orderBy=newest`);
+                     const fallbackData = await fallbackRes.json();
+                     return fallbackData.items || [];
+                }
+                
+                return data.items || [];
+            } catch (error) {
+                console.error("خطأ في الاتصال:", error);
+                return [];
+            }
+        }
+
+        // 2. دالة بناء إعلان متحرك
+        function createAdMarquee(books) {
+            // نستخدم 5 كتب فقط للإعلان
+            const adItems = books.slice(0, 5).map(book => {
+                const info = book.volumeInfo;
+                const title = info.title || 'عنوان جديد';
+                const author = info.authors ? info.authors[0] : 'غير معروف';
+                const category = info.categories ? info.categories[0] : 'حصري';
+
+                return `
+                    <div class="ad-item group hover:shadow-lg hover:border-brand-gold transition duration-300" onclick="navigate('details', { bookId: '${book.id}' })">
+                        <p class="text-xs text-brand-500 font-bold mb-1">${category}</p>
+                        <h4 class="text-md font-bold text-gray-900 dark:text-white line-clamp-1">${title}</h4>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">${author}</p>
+                        <i class="fas fa-arrow-left text-brand-gold absolute left-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition"></i>
+                    </div>
+                `;
+            }).join('');
+            
+            // نكرر المحتوى ليظهر الانيميشن مستمراً
+            return `
+                <div class="marquee-container">
+                    <div class="marquee-content" style="animation-duration: 30s;">
+                        ${adItems}
+                    </div>
+                    <div class="marquee-content" style="animation-duration: 30s;">
+                        ${adItems}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 3. الصفحة الرئيسية - تم تحديث قسم الفئات هنا
+        async function renderHome() {
+            appContent.innerHTML = `
+                <header class="relative h-[500px] flex items-center bg-brand-900 text-white overflow-hidden">
+                    <div id="hero-bg" class="absolute inset-0 bg-cover bg-center opacity-30 transition-all duration-1000" style="background-image: url('https://images.unsplash.com/photo-1507842217121-9e93c8aaf27c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80');"></div>
+                    <div class="absolute inset-0 bg-gradient-to-t from-brand-900 via-transparent to-transparent"></div>
+                    
+                    <div class="container mx-auto px-4 relative z-10 text-center">
+                        <h1 class="text-5xl md:text-7xl font-bold mb-6 animate-pulse">مكتبتي</h1>
+                        <p class="text-xl mb-8 text-brand-gold">محتوى متجدد وديناميكي يعمل بشكل تلقائي</p>
+                        
+                        <div class="max-w-2xl mx-auto flex bg-white rounded-full overflow-hidden p-1 shadow-2xl">
+                            <input type="text" id="searchInput" placeholder="ابحث عن أي كتاب في العالم..." class="flex-1 px-6 py-3 outline-none text-gray-800">
+                            <button onclick="handleSearch()" class="bg-brand-500 text-white px-8 py-3 rounded-full font-bold hover:bg-brand-600 transition">بحث</button>
+                        </div>
+                    </div>
+                </header>
+                
+                <section id="categories" class="py-16 bg-white dark:bg-gray-800 transition-colors">
+                    <div class="container mx-auto px-4">
+                        <div class="flex justify-between items-end mb-10">
+                            <h2 class="text-3xl font-bold text-brand-900 dark:text-white border-r-4 border-brand-gold pr-4">استكشف فئات المحتوى</h2>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                            ${[
+                                { name: 'كتب شاملة', icon: 'fas fa-book', query: 'subject:general' }, 
+                                { name: 'مقالات علمية', icon: 'fas fa-flask', query: 'subject:science&inauthor:article' }, 
+                                { name: 'مقالات أدبية', icon: 'fas fa-pen-nib', query: 'subject:poetry&inauthor:article' }, 
+                                { name: 'روايات قصيرة', icon: 'fas fa-compact-disc', query: 'short stories' }, 
+                                { name: 'روايات طويلة', icon: 'fas fa-scroll', query: 'novel fiction' }, 
+                                { name: 'قصص أطفال', icon: 'fas fa-child', query: 'subject:juvenile' }, 
+                                { name: 'قصص كبار', icon: 'fas fa-users', query: 'subject:adult fiction' }, 
+                                { name: 'قصص رعب', icon: 'fas fa-ghost', query: 'subject:horror' }, 
+                                { name: 'قصص حقيقية', icon: 'fas fa-lightbulb', query: 'subject:biography' }, 
+                                { name: 'قصص تاريخية', icon: 'fas fa-landmark', query: 'subject:history' },
+                                { name: 'روايات عربية', icon: 'fas fa-language', query: 'arabic fiction' },
+                                { name: 'تطوير الذات', icon: 'fas fa-hands-helping', query: 'subject:self-help' }
+                            ].map(cat => `
+                                <div onclick="fetchAndRender('${cat.query}', '${cat.name}')" class="category-card cursor-pointer bg-gray-50 dark:bg-gray-700 p-6 rounded-xl text-center hover:bg-brand-500 hover:text-white transition shadow-lg hover:shadow-2xl group duration-300">
+                                    <i class="${cat.icon} text-3xl mb-3 text-brand-500 group-hover:text-white transition-colors"></i>
+                                    <h3 class="font-bold">${cat.name}</h3>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="py-12 bg-gray-100 dark:bg-gray-900 transition-colors">
+                    <div class="container mx-auto px-4">
+                        <h2 class="text-3xl font-bold mb-8 text-center text-brand-900 dark:text-white">جديد الإصدارات والمعروضات</h2>
+                        <div id="ad-marquee-content">
+                            <div class="loader"></div> جاري تجهيز العروض التلقائية...
+                        </div>
+                    </div>
+                </section>
+            `;
+
+            // تشغيل السلايدر التلقائي
+            startAutoSlider();
+            
+            // جلب البيانات للبانرات الإعلانية المتحركة
+            const adBooks = await fetchBooksFromGoogle('subject:literature', 10);
+            document.getElementById('ad-marquee-content').innerHTML = createAdMarquee(adBooks);
+        }
+
+        // 4. عرض الكتب في الشبكة (بدون تغيير)
+        function renderBooksGrid(books, containerId) {
+            const container = document.getElementById(containerId);
+            if (!books.length) {
+                container.innerHTML = '<p class="text-center col-span-full">عذراً، لم نتمكن من العثور على نتائج.</p>';
+                return;
+            }
+
+            container.innerHTML = books.map(book => {
+                const info = book.volumeInfo;
+                const img = info.imageLinks?.thumbnail || 'https://via.placeholder.com/128x196.png?text=No+Cover';
+                const desc = info.description ? info.description : 'لا يوجد وصف متاح لهذا الكتاب حالياً.';
+                
+                return `
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow hover:shadow-2xl transition overflow-hidden group flex flex-col h-full border border-gray-100 dark:border-gray-700">
+                    <div class="h-48 bg-gray-200 overflow-hidden relative">
+                        <img src="${img.replace('http:', 'https:')}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500" alt="${info.title}">
+                        <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                            <button onclick="navigate('details', { bookId: '${book.id}' })" class="bg-brand-gold text-brand-900 px-4 py-2 rounded-full font-bold transform translate-y-4 group-hover:translate-y-0 transition">اقرأ التفاصيل</button>
+                        </div>
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col">
+                        <h3 class="font-bold text-lg mb-1 line-clamp-1 text-brand-900 dark:text-white">${info.title}</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">${info.authors ? info.authors[0] : 'غير معروف'}</p>
+                        <p class="text-xs text-gray-600 dark:text-gray-300 line-clamp-3 mb-4 flex-1">${desc}</p>
+                        <div class="flex justify-between items-center mt-auto pt-3 border-t dark:border-gray-700">
+                            <span class="text-xs bg-brand-100 text-brand-900 px-2 py-1 rounded">${info.categories ? info.categories[0] : 'عام'}</span>
+                            <span class="text-yellow-500 text-xs"><i class="fas fa-star"></i> ${info.averageRating || 'جديد'}</span>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        // 5. صفحة عرض النتائج / التصنيفات (بدون تغيير)
+        async function fetchAndRender(query, title) {
+            navigate('library', { query: query, title: title });
+            appContent.innerHTML = `
+                <section class="py-16 bg-gray-50 dark:bg-gray-900">
+                    <div class="container mx-auto px-4">
+                        <h2 class="text-3xl font-bold mb-8 text-brand-900 dark:text-white border-r-4 border-brand-gold pr-4">${title}</h2>
+                        <div id="results-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                            <div class="col-span-full text-center"><div class="loader"></div> جاري البحث...</div>
+                        </div>
+                    </div>
+                </section>
+            `;
+            const books = await fetchBooksFromGoogle(query, 16);
+            renderBooksGrid(books, 'results-grid');
+        }
+
+        // 6. تفاصيل الكتاب (بدون تغيير)
+        async function showDetails(bookId) {
+            navigate('details', { bookId: bookId });
+            appContent.innerHTML = `<div class="text-center py-20"><div class="loader"></div> جاري تحميل التفاصيل...</div>`;
+            window.scrollTo(0,0);
+
+            const res = await fetch(`https://www.googleapis.com/books/v1/volumes/${bookId}`);
+            const book = await res.json();
+            const info = book.volumeInfo;
+            const img = info.imageLinks?.thumbnail || info.imageLinks?.smallThumbnail || '';
+
+            appContent.innerHTML = `
+                <div class="container mx-auto px-4 py-10 animate-fade-in-up">
+                    <button onclick="history.back()" class="mb-4 text-brand-500 font-bold"><i class="fas fa-arrow-right"></i> عودة</button>
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
+                        <div class="md:w-1/3 bg-gray-100 dark:bg-gray-900 p-8 flex items-center justify-center">
+                            <img src="${img.replace('http:', 'https:')}" class="shadow-lg max-w-full rounded" alt="${info.title}">
+                        </div>
+                        <div class="md:w-2/3 p-8 md:p-12">
+                            <h1 class="text-4xl font-bold mb-2 text-brand-900 dark:text-white">${info.title}</h1>
+                            <p class="text-xl text-gray-500 mb-6">الكاتب: ${info.authors ? info.authors.join(', ') : 'غير معروف'}</p>
+                            
+                            <div class="flex gap-4 mb-8">
+                                <a href="${info.previewLink}" target="_blank" class="bg-brand-500 text-white px-6 py-2 rounded shadow hover:bg-brand-600 transition">معاينة الكتاب</a>
+                                <button class="border border-gray-300 dark:border-gray-600 px-6 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition">إضافة للمفضلة</button>
+                            </div>
+
+                            <h3 class="font-bold text-lg mb-2 border-b inline-block pb-1">نبذة عن الكتاب:</h3>
+                            <div class="text-gray-700 dark:text-gray-300 leading-loose" id="book-desc">
+                                ${info.description || 'لا يوجد وصف متاح.'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 7. صفحة "من نحن" (بدون تغيير)
+        function renderAbout() {
+            appContent.innerHTML = `
+                <div class="container mx-auto px-4 py-16">
+                    <h2 class="text-4xl font-extrabold mb-8 text-brand-900 dark:text-brand-gold border-b-4 border-brand-500/50 pb-2">من نحن</h2>
+                    <div class="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-xl leading-relaxed">
+                        <p class="text-lg mb-4">
+                            مرحباً بك في **مكتبتي**، المنصة التي ولدت من شغف القراءة ورؤية مستقبل المعرفة الرقمية. نحن محرك بحث ثقافي ومعرفي يعمل بتقنيات الذكاء الاصطناعي لجلب أحدث وأهم الإصدارات والمقالات من مصادر موثوقة عالمياً.
+                        </p>
+                        <h3 class="text-2xl font-bold mt-6 mb-3 text-brand-900 dark:text-white">رسالتنا</h3>
+                        <p class="mb-4">
+                            نطمح إلى أن نكون الجسر الذي يربط القارئ العربي بأوسع نطاق من المعرفة. هدفنا هو تبسيط عملية الوصول إلى الكتاب المناسب، في الوقت المناسب، بأقل جهد ممكن، مع توفير تجربة قراءة مريحة وجذابة.
+                        </p>
+                        <h3 class="text-2xl font-bold mt-6 mb-3 text-brand-900 dark:text-white">فريق العمل</h3>
+                        <p class="mb-4">
+                            تم بناء هذا المشروع بشغف كبير من قِبل فريق صغير يؤمن بأن القراءة هي أساس التطور. نحن نعمل باستمرار على تطوير المنصة لضمان سرعة فائقة ومحتوى متجدد وديناميكي يعمل بشكل تلقائي لخدمتك.
+                        </p>
+                        <p class="mt-8 italic text-brand-500">
+                            "القراءة هي التنفس الثاني للعقل."
+                        </p>
+                    </div>
+                </div>
+            `;
+            window.scrollTo(0,0);
+        }
+
+        // 8. التعامل مع البحث اليدوي (بدون تغيير)
+        function handleSearch() {
+            const query = document.getElementById('searchInput').value;
+            if(query) fetchAndRender(query, `نتائج البحث عن: ${query}`);
+        }
+
+        // 9. سلايدر الخلفية التلقائي (بدون تغيير)
+        function startAutoSlider() {
+            const images = [
+                'https://images.unsplash.com/photo-1507842217121-9e93c8aaf27c?ixlib=rb-4.0.3&w=1000&q=80',
+                'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&w=1000&q=80',
+                'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?ixlib=rb-4.0.3&w=1000&q=80'
+            ];
+            let i = 0;
+            const bgEl = document.getElementById('hero-bg');
+            if(!bgEl) return;
+            
+            setInterval(() => {
+                i = (i + 1) % images.length;
+                bgEl.style.backgroundImage = `url('${images[i]}')`;
+            }, 5000); 
+        }
+
+        // 10. وظائف النموذج (Modal Functions)
+        function showAuthModal() {
+            authModal.classList.remove('hidden');
+            setTimeout(() => {
+                authModal.firstElementChild.classList.remove('scale-95', 'opacity-0');
+            }, 50); 
+        }
+
+        function hideAuthModal() {
+            authModal.firstElementChild.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                authModal.classList.add('hidden');
+            }, 300);
+        }
+        
+        // 11. الوضع الليلي (بدون تغيير في الوظيفة)
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+        }
+
+        // 12. التشغيل المبدئي
+        // تحقق من حالة الرابط عند التحميل الأولي
+        if(window.location.hash) {
+            const path = window.location.hash.substring(1);
+            if(path === 'about') renderAbout();
+            else renderHome(); // العودة للصفحة الرئيسية إذا لم تكن صفحة "من نحن"
+        } else {
+            renderHome();
+        }
+    </script>
+</body>
+</html>
